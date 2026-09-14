@@ -1,0 +1,38 @@
+[+] 自动定位到安装目录: D:\Program Files (x86)\GitHub Copilot\github.exe
+[+] 找到 525 个待处理 JS bundle
+[+] 加载词典 6679 条
+  [  63] '/assets/router-WHBclVxV.js': +9467 处, 2604769->2340429 B (q=11)
+  [ 144] '/assets/mbox-CosxbHvX.js': +1 处, 611->577 B (q=11)
+  [ 152] '/assets/python-ByvXpF13.js': +2 处, 2556->2455 B (q=11)
+  [ 159] '/assets/modelStore-dZ4MlZ2h.js': +20 处, 17080->16198 B (q=11)
+  [ 227] '/assets/WordEditor-B1dXRdS7.js': +8 处, 22223->20572 B (q=11)
+  [ 246] '/assets/vendor-elk-DZhXbUZT.js': +9 处, 371678->331675 B (q=11)
+  [ 261] '/assets/McpAppCanvas-mN3OU7oh.js': +1 处, 1014->973 B (q=11)
+  [ 262] '/assets/PptxSlideCanvas-D9ilcwMj.js': +9 处, 27366->24929 B (q=11)
+  [ 272] '/assets/shellUiStore-CexnG6Vi.js': +1 处, 1521->1436 B (q=11)
+  [ 327] '/assets/vendor-dompurify-D8hZcZSF.js': +0 处, 10192->9478 B (q=11)
+  [ 337] '/assets/dist-B8xcSmFP.js': +1 处, 17359->15441 B (q=11)
+  [ 413] '/assets/vendor-markdown-DThy3oH2.js': +1 处, 88754->82310 B (q=11)
+  [ 417] '/assets/swift-B6GgAbrb.js': +1 处, 1710->1605 B (q=11)
+  [ 420] '/assets/ExtensionCanvas-BKkMkjI_.js': +3 处, 5179->4869 B (q=11)
+  [ 449] '/assets/WidgetCanvasSurface-YLZApaGy.js': +1 处, 1129->1082 B (q=11)
+  [ 504] '/assets/documentPreviewMarkdownParser-CAkvfZoq.js': +18 处, 208689->191433 B (q=11)
+  [ 507] '/assets/browserPreview-CpNskQoK.js': +153 处, 12580->12135 B (q=11)
+  [ 514] '/assets/McpAppConsentPrompt-DNdG3978.js': +6 处, 7642->7207 B (q=11)
+  [ 536] '/assets/vendor-mermaid-Lr_nqH_V.js': +27 处, 639001->580275 B (q=11)
+  [ 539] '/assets/tauri-compat-BM-me1Oo.js': +2 处, 3949->3711 B (q=11)
+  [ 549] '/assets/vendor-terminal-CneEiGOc.js': +1 处, 131779->115615 B (q=11)
+  [ 566] '/assets/OfficeCanvas-BlFti8sf.js': +4 处, 3183->2957 B (q=11)
+  [ 591] '/assets/telemetry-C16DzJaG.js': +1479 处, 558231->513564 B (q=11)
+  [ 611] '/assets/vendor-3d-BF-4dwbl.js': +2 处, 142110->129618 B (q=11)
+  [ 664] '/assets/toast-Ba-srDOX.js': +3 处, 2151->2094 B (q=11)
+  [ 680] '/assets/syntax.worker-BVqSms45.js': +1 处, 44992->41673 B (q=11)
+  [ 715] '/assets/InvertocatCanvas-BxdtY-XC.js': +1 处, 29173->27269 B (q=11)
+  [ 723] '/assets/markdownClipboard.worker-Bkl5k55a.js': +1 处, 176637->159850 B (q=11)
+  [ 743] '/assets/DocxEditableCanvas-frK9WDmP.js': +15 处, 52898->49573 B (q=11)
+  [ 748] '/assets/UniverWorkbookCanvas-uGl2c7Gd.js': +126 处, 1343621->1220753 B (q=11)
+
+[+] 共修改 30 个 bundle, 累计替换 11364 处
+[+] 库哨兵拆字 4 处
+[+] 锚定替换 225 处
+[+] 汉化完成！已写入 D:\Program Files (x86)\GitHub Copilot\github.exe
