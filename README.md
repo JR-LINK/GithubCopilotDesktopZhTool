@@ -1,4 +1,4 @@
-# GitHub Copilot App 汉化工具（二进制替换版）
+# GitHub Copilot desktop 汉化工具（二进制替换版）
 
 
 ## 这是什么
