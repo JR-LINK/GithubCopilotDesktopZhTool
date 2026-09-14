@@ -1,6 +1,6 @@
 # GitHub Copilot Desktop 汉化工具（使用说明）
 
-> 本工具用于把 **GitHub Copilot App**（Windows 桌面版）界面汉化为简体中文。
+> 本工具用于把 **GitHub Copilot **（Windows 桌面版）界面汉化为简体中文。
 > 汉化是对 `github.exe` 内部资源做本地替换，**不联网、不改账号、不影响登录**。
 
 ---
