@@ -1,0 +1,10 @@
+[
+  ["Any OpenAI-compatible HTTP endpoint (vLLM, OpenRouter, fine-tune, etc.).", "任何兼容 OpenAI 的 HTTP 端点（如 vLLM、OpenRouter、自定义微调等）。"],
+  ["Hosted Claude models over the Messages API.", "通过 Messages API 接入的 Claude 托管模型。"],
+  ["Service deployments via your resource host, API version, and per-model deployment names.", "通过资源主机、API 版本和按模型部署名称部署的服务。"],
+  ["Local runtime with no API key, over an OpenAI-compatible endpoint.", "无需 API 密钥的本地运行时，通过 OpenAI 兼容端点接入。"],
+  ["OpenAI-compatible endpoints. Defaults to the Responses API for GPT-5.", "兼容 OpenAI 的端点。GPT-5 默认使用 Responses API。"],
+  ["Local runtime with no API key, over the OpenAI-compatible /v1 endpoint.", "无需 API 密钥的本地运行时，通过 OpenAI 兼容的 /v1 端点接入。"],
+  ["Hosted models over the Chat Completions API.", "通过 Chat Completions API 接入的托管模型。"],
+  ["Search providers…", "搜索提供商…"]
+]

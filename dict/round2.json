@@ -1,0 +1,32 @@
+{
+  "entries": [
+    ["Get started with one of these project ideas.", "从这些项目创意中开始。"],
+    ["No GitHub repositories yet", "暂无 GitHub 仓库"],
+    ["Add a GitHub repository to see issues and pull requests here.", "添加 GitHub 仓库后即可在此查看议题和拉取请求。"],
+    ["Set up automations", "设置自动化"],
+    ["Editor\u2019s picks", "编辑精选"],
+    ["Standout ways to customize Copilot.", "脱颖而出的 Copilot 定制方式。"],
+    ["Plan, build, and ship", "规划、构建与交付"],
+    ["Tools for planning work, testing experiences, and shipping with confidence.", "用于规划工作、测试体验并自信地交付的工具。"],
+    ["Plan and manage Azure DevOps work in a visual, interactive workspace.", "在可视化、可交互的工作区中规划和管理 Azure DevOps 工作。"],
+    ["Design, critique, and polish product interfaces with expert guidance.", "在专家指导下设计、评审并打磨产品界面。"],
+    ["Build, test, and deploy hosted agents with Microsoft Foundry.", "使用 Microsoft Foundry 构建、测试和部署托管智能体。"],
+    ["Inspect and implement Figma designs faster.", "更快地检视并实现 Figma 设计稿。"],
+    ["Test and automate web apps in browsers.", "在浏览器中测试并自动化 Web 应用。"],
+    ["Review UI for usability and accessible design.", "从可用性和可访问性角度审阅 UI。"],
+    ["Pressure-test your product plan.", "对产品计划进行压力测试。"],
+    ["Build secure, accessible, reliable software.", "构建安全、可访问、可靠的软件。"],
+    ["Type a plugin name as plugin@marketplace to install it directly.", "输入插件名称（如 plugin@marketplace）以直接安装。"],
+    ["Plugins can add skills, agents, MCP servers, and hooks. Only install plugins from sources you trust.", "插件可添加技能、智能体、MCP 服务器和钩子。请仅从你信任的来源安装插件。"],
+    ["Use Create and run from the menu to test your prompt right away.", "从菜单中使用「创建并运行」立即测试你的提示词。"],
+    ["Default: 180 seconds (3 minutes)", "默认值：180 秒（3 分钟）"],
+    ["Separate arguments with spaces, or enter a JSON array if an argument contains spaces or is empty.", "用空格分隔参数；若参数含空格或为空，请输入 JSON 数组。"],
+    ["New issue", "新建议题"],
+    ["Add variable", "添加变量"],
+    ["Use agents to handle recurring work on a cadence you choose or triggered by events.", "使用智能体按你选择的频率或由事件触发的节奏处理周期性工作。"],
+    ["Use agents to handle recurring work on a cadence you choose.", "使用智能体按你选择的频率处理周期性工作。"],
+    [" You can start from scratch or turn an existing agent skill into an automation.", " 你可以从零开始，或将现有智能体技能转换为自动化。"],
+    ["Cancel", "取消"],
+    ["Create", "创建"]
+  ]
+}

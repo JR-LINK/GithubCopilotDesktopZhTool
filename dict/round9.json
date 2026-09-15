@@ -1,0 +1,20 @@
+{
+  "meta": {
+    "name": "round9",
+    "description": "创建仓库表单+仓库选择弹窗：Owner/Visibility/Public/Private/Description/(optional)/iO.public/iO.private/Search or type owner/repo/Create new repository",
+    "date": "2026-09-13"
+  },
+  "entries": [
+    ["Owner", "所有者"],
+    ["Search or type owner/repo…", "搜索或输入 owner/repo…"],
+    ["Create new repository…", "新建仓库…"],
+    ["Create new repository", "新建仓库"],
+    ["Visibility", "可见性"],
+    ["Public", "公开"],
+    ["Private", "私有"],
+    ["Description", "描述"],
+    ["(optional)", "（可选）"],
+    ["Anyone can see this repository", "任何人都可以查看此仓库"],
+    ["Only you can see this repository", "只有你可以查看此仓库"]
+  ]
+}

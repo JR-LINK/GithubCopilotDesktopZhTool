@@ -1,0 +1,20 @@
+[
+  ["Issue triage", "议题分流"],
+  ["Changelog draft", "更新日志草稿"],
+  ["Repo audit", "仓库审查"],
+  ["Telemetry review", "遥测审查"],
+  ["Performance improvements", "性能优化"],
+  ["Accessibility audit", "无障碍审查"],
+  ["Cost tips", "成本优化建议"],
+  ["Daily", "每日"],
+  ["Weekly", "每周"],
+  ["Manual", "手动"],
+  ["Hourly", "每小时"],
+  ["Every", "每次"],
+  ["Start automating", "开始自动化"],
+  ["Run automation", "运行自动化"],
+  ["View automation", "查看自动化"],
+  ["Go to Automations", "前往自动化"],
+  ["New automation", "新建自动化"],
+  ["Turn an existing agent skill into an automation.", "将现有智能体技能转换为自动化。"]
+]

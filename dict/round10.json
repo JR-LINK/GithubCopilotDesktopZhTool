@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "name": "round10",
+    "description": "新建自动化弹窗/Mode菜单/触发器配置等",
+    "date": "2026-09-13"
+  },
+  "entries": [
+    ["Name", "名称"],
+    ["Trigger", "触发器"],
+    ["Hours", "小时"],
+    ["Hour", "小时"],
+    ["Minute", "分钟"],
+    ["Prompt", "提示"],
+    ["Mode", "模式"],
+    ["Interactive", "交互式"],
+    ["Plan", "计划"],
+    ["Autopilot", "自动执行"],
+    ["Auto", "自动"],
+    ["Run in the cloud", "在云端运行"],
+    ["Run even when your computer is off, triggered by events or on a schedule.", "即使电脑关机也能运行，由事件或定时触发。"],
+    ["e.g., Daily code review", "例如：每日代码审查"],
+    ["Describe what this automation should do. Type / for skills…", "描述此自动化应当执行的任务。输入 / 可使用技能…"],
+    ["Session...", "会话..."],
+    ["Step-by-step collaboration. Accepts a message after the command.", "逐步协作。命令后接受一条消息。"],
+    ["Plan first, execute when ready. Accepts a message after the command.", "先规划，准备就绪后再执行。命令后接受一条消息。"],
+    ["No projects yet", "暂无项目"],
+    ["Without a project, this automation will run as a chat.", "未关联项目时，此自动化将以聊天形式运行。"]
+  ]
+}

@@ -1,11 +1,20 @@
 """
-GitHub Copilot App 汉化工具 - 主程序 v2 (处理所有 JS bundle)
+GitHub Copilot App 汉化工具 - 主程序 v3 (处理所有 JS bundle)
 汉化 / 还原 github.exe 中所有 JS bundle 的界面文本
 
 用法:
-  python hanhua_bin.py                 # 汉化（生成 github.exe，原文件备份为 github.exe.bak）
+  python hanhua_bin.py                 # 汉化（原文件备份为 github.exe.<版本>.bak）
   python hanhua_bin.py --restore       # 还原英文
   python hanhua_bin.py --dict xxx.json # 指定词典
+  python hanhua_bin.py --layout        # 只打印 PE 布局与资源表定位（排查用）
+  python hanhua_bin.py --list          # 只列出将被处理的 JS bundle
+
+版本自适应说明（v3 新增）
+  Tauri 的资源表位置写在 exe 的 PE 头里，**每次 App 自动更新都会位移**。
+  v2 之前把 BASE/RDATA_VA/RDATA_RAW/ENTRY_START 写死成 1.1.20 的值，
+  一旦 App 升到 1.1.21，资源表就定位不到 → 枚举出 0 个 bundle →
+  「汉化完成」但实际一个字节都没改。v3 改为运行时从 PE 头动态解析，
+  不再依赖版本号，升级后可直接继续用。
 """
 import struct
 import brotli
@@ -15,12 +24,23 @@ import shutil
 import sys
 import argparse
 
-# Tauri 2 PE 常量（针对 GitHub Copilot App 1.1.20）
+# ---------------------------------------------------------------------------
+# Tauri 2 PE 布局常量
+# ---------------------------------------------------------------------------
+# ⚠ 下面这些只是**默认后备值**（1.1.20 时的取值）。真正使用时由
+# detect_layout() 从 PE 头重新解析；解析失败才退回这里 / KNOWN_LAYOUTS。
 BASE = 0x140000000
 RDATA_VA = 0x7663000
 RDATA_RAW = 0x7661e00
 ENTRY_START = 0x83f8400
-MAX_ENTRY = 2000  # 资源表实际有 1999 条
+MAX_ENTRY = 2000  # 资源表条目上限（按 0x20 步长向下扫）
+
+# 已实测过的版本布局，自动探测失败时按版本号兜底
+# 值 = (image_base, rdata_va, rdata_raw, entry_start)
+KNOWN_LAYOUTS = {
+    '1.1.20': (0x140000000, 0x7663000, 0x7661e00, 0x83f8400),
+    '1.1.21': (0x140000000, 0x7926000, 0x7925000, 0x86a9358),
+}
 
 DEFAULT_DICT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dict', 'binary-zh-CN.json')
 
@@ -101,6 +121,179 @@ def find_exe():
 
 def va_to_off(va):
     return RDATA_RAW + (va - (BASE + RDATA_VA))
+
+
+# ---------------------------------------------------------------------------
+# PE 布局动态解析（版本自适应的核心）
+# ---------------------------------------------------------------------------
+def _parse_pe(data):
+    """解析 PE 头，返回 (image_base, sections)
+    sections: {'段名': (va, vsize, rsize, raw)}
+    """
+    e_lfanew = struct.unpack_from('<I', data, 0x3C)[0]
+    if data[e_lfanew:e_lfanew + 4] != b'PE\x00\x00':
+        raise ValueError('不是有效的 PE 文件')
+    coff = e_lfanew + 4
+    machine, nsec, _, _, _, opt_size, _ = struct.unpack_from('<HHIIIHH', data, coff)
+    opt = coff + 20
+    magic = struct.unpack_from('<H', data, opt)[0]
+    if magic == 0x20b:      # PE32+
+        image_base = struct.unpack_from('<Q', data, opt + 0x18)[0]
+    elif magic == 0x10b:    # PE32
+        image_base = struct.unpack_from('<I', data, opt + 0x1c)[0]
+    else:
+        raise ValueError('未知的 PE 可选头 magic: 0x%x' % magic)
+    secoff = opt + opt_size
+    secs = {}
+    for i in range(nsec):
+        o = secoff + i * 40
+        name = data[o:o + 8].rstrip(b'\x00').decode('latin1')
+        vsize, va, rsize, raw = struct.unpack_from('<IIII', data, o + 8)
+        secs[name] = (va, vsize, rsize, raw)
+    return image_base, secs
+
+
+def get_file_version(path):
+    """读取 exe 的 FileVersion（如 '1.1.21'）；失败返回 None。"""
+    try:
+        import ctypes
+        from ctypes import wintypes
+        ver = ctypes.WinDLL('version')
+        size = ver.GetFileVersionInfoSizeW(path, None)
+        if not size:
+            return None
+        buf = ctypes.create_string_buffer(size)
+        if not ver.GetFileVersionInfoW(path, 0, size, buf):
+            return None
+        r = ctypes.c_void_p()
+        ln = wintypes.UINT()
+        if not ver.VerQueryValueW(buf, '\\', ctypes.byref(r), ctypes.byref(ln)):
+            return None
+
+        class FI(ctypes.Structure):
+            _fields_ = [('dwSignature', wintypes.DWORD),
+                        ('dwStrucVersion', wintypes.DWORD),
+                        ('dwFileVersionMS', wintypes.DWORD),
+                        ('dwFileVersionLS', wintypes.DWORD),
+                        ('dwProductVersionMS', wintypes.DWORD),
+                        ('dwProductVersionLS', wintypes.DWORD)]
+        fi = ctypes.cast(r, ctypes.POINTER(FI)).contents
+        return '%d.%d.%d' % (fi.dwFileVersionMS >> 16, fi.dwFileVersionMS & 0xFFFF,
+                             fi.dwFileVersionLS >> 16)
+    except Exception:
+        return None
+
+
+def _find_asset_table(data, image_base, rd_va, rd_raw, rd_vsize, min_js=20):
+    """在 .rdata 里自动定位 Tauri asset 表起点（返回文件偏移）。
+
+    entry 结构固定 32 字节：name_ptr(8) name_len(8) data_ptr(8) data_len(8)，
+    其中 name_ptr / data_ptr 都是落在 .rdata 内的 VA。
+
+    快速筛法：同一段内所有 VA 的高 32 位相同（如 0x147926000..0x155194178
+    的高位都是 0x1），因此按这 4 字节字节模式全文搜一遍即可锁定候选；
+    再要求 name_ptr 与 data_ptr 成对出现（间隔 0x10），最后验证连续 run 取最长。
+    """
+    lo_va = image_base + rd_va
+    hi_va = lo_va + rd_vsize
+    hiword = struct.pack('<I', lo_va >> 32)
+
+    hits = []
+    pos = 0
+    while True:
+        i = data.find(hiword, pos)
+        if i < 0:
+            break
+        hits.append(i)
+        pos = i + 1
+    hitset = set(hits)
+
+    def valid(o):
+        """o 处是否为合法 entry，是则返回 name"""
+        if o < 0 or o + 0x20 > len(data):
+            return None
+        np_, nl_, dp_, dl_ = struct.unpack_from('<QQQQ', data, o)
+        if not (lo_va <= np_ < hi_va) or not (lo_va <= dp_ < hi_va):
+            return None
+        if nl_ == 0 or nl_ > 500 or dl_ < 50:
+            return None
+        noff = rd_raw + (np_ - lo_va)
+        if noff <= 0 or noff + nl_ > len(data):
+            return None
+        try:
+            nm = data[noff:noff + nl_].decode()
+        except Exception:
+            return None
+        if not nm or not all(32 <= ord(c) < 127 for c in nm):
+            return None
+        return nm
+
+    best = None  # (start, run_len, js_count)
+    for i in hits:
+        o = i - 4                      # i 是指针低 4 字节位置，记录起点在其前 4 字节
+        if (i + 0x10) not in hitset:   # data_ptr 必须同时命中
+            continue
+        if valid(o) is None:
+            continue
+        s = o
+        while valid(s - 0x20) is not None:
+            s -= 0x20
+        n = 0
+        js = 0
+        p = s
+        while True:
+            nm = valid(p)
+            if nm is None:
+                break
+            n += 1
+            if nm.endswith('.js'):
+                js += 1
+            p += 0x20
+        if js < min_js:
+            continue
+        if best is None or n > best[1]:
+            best = (s, n, js)
+    return best
+
+
+def detect_layout(data, exe_path=None, quiet=False):
+    """从 PE 头动态解析 Tauri 资源布局并覆盖全局常量。
+
+    成功返回 (image_base, rdata_va, rdata_raw, entry_start)；失败返回 None。
+    """
+    global BASE, RDATA_VA, RDATA_RAW, ENTRY_START
+    try:
+        image_base, secs = _parse_pe(data)
+    except Exception as e:
+        if not quiet:
+            print('[!] 解析 PE 头失败: %s' % e)
+        return None
+    if '.rdata' not in secs:
+        if not quiet:
+            print('[!] PE 里找不到 .rdata 段')
+        return None
+
+    rd_va, rd_vsize, rd_rsize, rd_raw = secs['.rdata']
+    best = _find_asset_table(data, image_base, rd_va, rd_raw, rd_vsize)
+    if best is not None:
+        BASE, RDATA_VA, RDATA_RAW, ENTRY_START = image_base, rd_va, rd_raw, best[0]
+        if not quiet:
+            print('[+] 自动识别布局: image_base=0x%x  .rdata VA=0x%x RAW=0x%x  资源表=0x%x (%d 条, 含 %d 个 .js)'
+                  % (image_base, rd_va, rd_raw, best[0], best[1], best[2]))
+        return image_base, rd_va, rd_raw, best[0]
+
+    # 自动探测失败 → 按文件版本查已知布局表
+    ver = get_file_version(exe_path) if exe_path else None
+    if ver:
+        for k, v in KNOWN_LAYOUTS.items():
+            if ver == k or ver.startswith(k + '.'):
+                BASE, RDATA_VA, RDATA_RAW, ENTRY_START = v
+                if not quiet:
+                    print('[+] 自动识别失败，改用已知版本 %s 的布局' % k)
+                return v
+    if not quiet:
+        print('[!] 无法定位资源表（App 版本 %s 尚未适配）' % (ver or '未知'))
+    return None
 
 
 # 跳过文件类型:不是用户界面 JS bundle 的资源
@@ -791,14 +984,54 @@ def compress_to_fit(text_bytes, orig_len, max_extend=0):
     return None, None
 
 
+def backup_path(exe_path):
+    """备份文件名带 App 版本号，避免新版覆盖旧版备份。
+    例：github.exe.1.1.21.bak
+    """
+    ver = get_file_version(exe_path)
+    if ver:
+        return '%s.%s.bak' % (exe_path, ver)
+    return exe_path + '.bak'
+
+
 def patch(exe_path, dict_path, backup=True):
     if not os.path.exists(exe_path):
         print(f'[!] 未找到目标文件: {exe_path}')
         sys.exit(1)
 
     data = bytearray(open(exe_path, 'rb').read())
+    ver = get_file_version(exe_path)
+    print(f'[+] 目标: {exe_path}')
+    print(f'[+] App 版本: {ver or "未知"}')
+
+    # 提前检查写入权限：Copilot 运行中会锁住 exe，
+    # 这里先探一次，避免压缩跑完几分钟才在最后写入时失败。
+    try:
+        _probe = open(exe_path, 'r+b')
+        _probe.close()
+    except PermissionError:
+        print('[!] 无法写入目标文件（被占用或权限不足）: %s' % exe_path)
+        print('    请先【完全退出 GitHub Copilot】：')
+        print('      1) 关闭主窗口')
+        print('      2) 右下角托盘图标右键 -> 退出')
+        print('    然后重新运行本工具。')
+        sys.exit(3)
+    except Exception as e:
+        print('[!] 打开目标文件失败: %s' % e)
+        sys.exit(3)
+
+    # 关键：先按 PE 头动态解析资源布局（版本升级后常量会失效）
+    if detect_layout(data, exe_path) is None:
+        print('[!] 无法定位资源表，汉化中止（未做任何修改）。')
+        print('    说明：该 App 版本可能改动了 PE 结构，需要适配后才能汉化。')
+        sys.exit(2)
+
     assets = load_assets(data)
     print(f'[+] 找到 {len(assets)} 个待处理 JS bundle')
+    if not assets:
+        print('[!] 枚举到 0 个 JS bundle，汉化中止（未做任何修改）。')
+        print('    通常是 App 已更新、资源表布局变化导致定位失败。')
+        sys.exit(2)
 
     entries = load_dict(dict_path)
     print(f'[+] 加载词典 {len(entries)} 条')
@@ -875,8 +1108,8 @@ def patch(exe_path, dict_path, backup=True):
         print(f'  [{a["index"]:4d}] {a["name"]!r}: +{total} 处, {orig_len}->{new_len} B (q={q}){grow}')
 
     if modified_bundles == 0:
-        print('[!] 无任何 bundle 需要汉化（或词典未命中）')
-        return {}
+        print('[!] 无任何 bundle 需要汉化（词典未命中）。汉化未生效，未做任何修改。')
+        sys.exit(2)
 
     print(f'\n[+] 共修改 {modified_bundles} 个 bundle, 累计替换 {total_replacements} 处')
     if defang_hits:
@@ -884,10 +1117,14 @@ def patch(exe_path, dict_path, backup=True):
     if anchor_hits:
         print(f'[+] 锚定替换 {anchor_hits} 处')
 
-    # 备份
-    if backup and not os.path.exists(exe_path + '.bak'):
-        shutil.copy2(exe_path, exe_path + '.bak')
-        print(f'[+] 已备份原文件到 {exe_path}.bak')
+    # 备份（文件名带版本号，绝不覆盖历史版本的备份）
+    if backup:
+        bp = backup_path(exe_path)
+        if not os.path.exists(bp):
+            shutil.copy2(exe_path, bp)
+            print(f'[+] 已备份原文件到 {bp}')
+        else:
+            print(f'[+] 备份已存在，跳过: {bp}')
 
     open(exe_path, 'wb').write(bytes(data))
     print(f'[+] 汉化完成！已写入 {exe_path}')
@@ -895,12 +1132,21 @@ def patch(exe_path, dict_path, backup=True):
 
 
 def restore(exe_path):
-    bak = exe_path + '.bak'
-    if not os.path.exists(bak):
-        print(f'[!] 未找到备份文件: {bak}')
-        sys.exit(1)
-    shutil.copy2(bak, exe_path)
-    print(f'[+] 已从备份还原: {bak} -> {exe_path}')
+    """还原英文。优先用与当前版本号匹配的备份，避免把新版 exe 覆盖成旧版。"""
+    ver = get_file_version(exe_path)
+    cands = []
+    if ver:
+        cands.append('%s.%s.bak' % (exe_path, ver))
+    cands.append(exe_path + '.bak')
+    for bak in cands:
+        if os.path.exists(bak):
+            shutil.copy2(bak, exe_path)
+            print(f'[+] 已从备份还原: {bak} -> {exe_path}')
+            return
+    print('[!] 未找到备份文件，尝试过:')
+    for b in cands:
+        print('    ' + b)
+    sys.exit(1)
 
 
 def main():
@@ -911,6 +1157,8 @@ def main():
     parser.add_argument('--restore', action='store_true')
     parser.add_argument('--no-backup', action='store_true')
     parser.add_argument('--list', action='store_true', help='只列出所有将被处理的 JS bundle')
+    parser.add_argument('--layout', action='store_true',
+                        help='只打印 PE 布局与资源表定位结果（排查版本未适配用）')
     args = parser.parse_args()
 
     # 解析目标 exe 路径：显式指定 > 自动定位 > 报错
@@ -931,9 +1179,20 @@ def main():
         restore(exe_path)
         return
 
+    if args.layout:
+        data = open(exe_path, 'rb').read()
+        print('[+] App 版本: %s' % (get_file_version(exe_path) or '未知'))
+        print('[+] 文件大小: %d 字节' % len(data))
+        if detect_layout(data, exe_path) is None:
+            sys.exit(2)
+        return
+
     if args.list:
         data = open(exe_path, 'rb').read()
+        if detect_layout(data, exe_path) is None:
+            sys.exit(2)
         assets = load_assets(data)
+        print('[+] 共 %d 个 JS bundle' % len(assets))
         for a in assets:
             print(f'  [{a["index"]:4d}] {a["name"]} (data_len={a["data_len"]})')
         return
